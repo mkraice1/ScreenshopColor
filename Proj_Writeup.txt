@@ -1,0 +1,20 @@
+You're task is to create a model that infers products' colors as specified by merchants given an image and an non-preprocessed string specifying the product's color as specified by the merchant.
+A color string should be passed into the function `color_string_to_hsv_function` in `product_dataset.py` and return the hsv values of that color string as a numpy array of three ints between 0 and 255.
+This will be passed into the ProductDataset method `hsv_transform`, which will convert it to a torch tensor between (0, 1) for each value.
+It is up to you to determine how to appropriately munge the color strings.
+Don't spend too much time on this (unless you're having too much fun) - getting them prepped to a reasonable place is fine.
+
+Then, build and train a pytorch model to infer the hsv representation of the color string given the product image as input.
+Please train the model using BCEWithLogitsLoss (bonus points if you can tell me why!)
+Training should include cutting the dataset into train, val, and test sets.
+You should incrementally report training and validation error during training, and report final test error.
+Please be sure to save and be able to load the model checkpoint with the best validation performance for assesstion test error.
+
+As a qualitative measure of performance, please also provide a function that takes in an output from the model and prints a closest-matching color string.
+
+The experiment should be replicable with a call to whatever main function you write for training.
+We will be considering organization of code, quality of hsv parsing, quality of model, and quality of result.
+
+Plese let me know if you have any questions or need any assistance or scaffold code.
+See how far you can get in a few hours work.
+Have fun!
