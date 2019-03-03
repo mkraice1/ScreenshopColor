@@ -18,7 +18,7 @@ green_set = ("green", "lime", "olive", "hunter", "army", "camo", "forest")
 teal_set = ("teal", "aqua", "cyan", "mint", "turquoise")
 blue_set = ("blue", "indigo", "navy", "royal", "sapphire", "denim", "sky",
 			"sea")
-purple_set = ("purple", "violet", "wine", "plum", "mauve", "lilac", "lavender"
+purple_set = ("purple", "violet", "wine", "plum", "mauve", "lilac", "lavender",
 			"fuchsia")
 white_set = ("white", "ivory", "cream", "bone")
 black_set = ("black",)
@@ -27,19 +27,18 @@ gray_set = ("gray", "grey", "silver", "stone", "heather", "charcoal", "dark",
 tan_set = ("tan", "beige", "khaki", "camel", "sand", "taupe", "nude",)
 brown_set = ("brown", "coffee", "espresso", "leather", "toffee", "mocha", "choco")
 multi_set = ("multi", "mix", "colorful")
-nan_set = ("none",)
+none_set = ("none", "nan")
 
 normal_colors = {"pink": pink_set, "red": red_set, "maroon": maroon_set, "orange": orange_set, 
 				"yellow": yellow_set, "green": green_set, "teal": teal_set, "blue": blue_set,  
 				"purple": purple_set, "white": white_set, "black": black_set, 
 				"gray": gray_set, "tan": tan_set, "brown": brown_set, "multi": multi_set, 
-				"nan": nan_set}
-
+				"none": none_set}
 
 
 def main():
 	others = 0
-	# Go through downloaded data
+	# Go through downloaded data and organize colors
 	for filename in os.listdir(directory):
 		if filename.endswith(".json"):
 			json_data=open(directory + filename).read()
@@ -48,7 +47,7 @@ def main():
 			# Lower and remove non-chars
 			refined_color = clean_color_string(data["raw_color"])
 
-			# Organise color strings
+			# Cluster color strings
 			color_found = False
 			for normal_color, color_set in normal_colors.items():
 				for color in color_set:
@@ -61,11 +60,11 @@ def main():
 			
 			# No color found
 			if not color_found:
-				if refined_color != "nan":
-					others += 1
+				others += 1
 				safe_insert(color_dict, refined_color)
 			
 	print(others)
+
 	# Dump to csv to take a look
 	with open("color_strings.csv", "w", newline="") as csv_file:
 		writer = csv.writer(csv_file, delimiter=",")
