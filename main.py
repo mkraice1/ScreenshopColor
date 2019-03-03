@@ -2,8 +2,9 @@ from product_dataset import ProductDataset, color_to_hsv_fn, ImageToHsvNet
 from torchvision import transforms
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-from torch.nn import BCEWithLogitsLoss
+from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
+from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
 import numpy as np
 import argparse
@@ -19,9 +20,9 @@ def main():
                         help='path to save the weights file')
     parser.add_argument('--cuda', dest='cuda', default="False",
                         help='If set to false, will not use GPU. defaults to False')
-    parser.add_argument('--epochs', dest='epochs', default=5, type=int,
+    parser.add_argument('--epochs', dest='epochs', default=1, type=int,
                         help='Specify the number of epochs for training')
-    parser.add_argument('--batch', dest='batch', default=8, type=int,
+    parser.add_argument('--batch', dest='batch', default=4, type=int,
                         help='Batch size when training')
     parser.add_argument('--lr', dest='lr', default=0.001, type=float,
                         help='Learning rate')
@@ -50,7 +51,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size):
 
 	# Load dataset
 	dataset = ProductDataset(
-            data_dir='./train_data',
+            data_dir='./test_data',
             download=False,
             image_transform=lambda pil_im: transforms.ToTensor()(pil_im),
             color_string_to_hsv_fn=color_to_hsv_fn
@@ -79,7 +80,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size):
 
 
 	train_loader 		= DataLoader(dataset, batch_size=batch_size, 
-                                    sampler=train_sampler)
+                                    sampler=train_sampler, collate_fn=my_collate)
 	validation_loader 	= DataLoader(dataset, batch_size=batch_size,
                                     sampler=valid_sampler)
 	test_loader 		= DataLoader(dataset, batch_size=batch_size,
@@ -88,34 +89,51 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size):
 
 	loss_fn 	= BCEWithLogitsLoss()
 	optimizer 	= Adam( model.parameters(), lr=lr )
+	loss_log = []
 
 
 	# train for set number of epochs
 	for epoch in range( epochs ):
-        print( "epoch: " + str(epoch) )
-        for batch_idx, sample in enumerate( train_loader ):
-        	if do_cuda:
-                img 		= Variable( sample[0].cuda() )
-                target_hsv 	= Variable( sample[1].cuda() )
-            else:
-                img 		= Variable( sample[0] )
-                target_hsv 	= Variable( sample[1] )
+		print( "epoch: " + str(epoch) )
+		for batch_idx, sample in enumerate( train_loader ):
+			if do_cuda:
+				img 		= Variable( sample[0].cuda() )
+				target_hsv 	= Variable( sample[1].cuda() )
+			else:
+				img 		= Variable( sample[0] )
+				target_hsv 	= Variable( sample[1] )
 
-            optimizer.zero_grad()
+			optimizer.zero_grad()
 
             # Put image through model
-            output_hsv = model(img)
+			output_hsv = model(img)
 
             # Loss
-            loss = loss_fn(output_hsv, target_hsv)
+			loss = loss_fn(output_hsv, target_hsv)
 
             # Backprop
-            loss.backward()
-        	optimizer.step()
+			loss.backward()
+			optimizer.step()
+			print( 'Batch: ' + str(batch_idx) )
+			if batch_idx % 100 == 0:
+				print( 'Batch: ' + str(batch_idx) )
+				print( 'Loss: ' + str(loss.data.item()) )
+				# Check validation loss
+				loss_log.append(loss.data.item())
 
-        	if batch_idx % 100 == 0:
-        		print( loss.data[0] )
+def my_collate(batch):
+    "Puts each data field into a tensor with outer dimension batch size"
+    batch = filter (lambda x:x is not None, batch)
+    print(batch)
+    return default_collate(batch)
 
+
+# TODO
+# Add checkpoints
+# Validation accuracy
+# Test accuracy
+# Handle None hsv properly
+# Fn for output -> color_string
 	
 
 

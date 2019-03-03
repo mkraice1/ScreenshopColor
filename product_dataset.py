@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch import optim
+import torch.nn.functional as F
 
 from torch.utils.data import Dataset, DataLoader
 
@@ -112,15 +113,16 @@ def color_to_hsv_fn(color_string: str) -> np.array:
         if word in color_table:
             return color_table[word]
 
+    # BAD CHANGE LATER
     return None
+
+
 
 # NN 
 class ImageToHsvNet(nn.Module):
     def __init__(self):
         super().__init__()
         
-        # 3x3 convolution that takes in an image with one channel
-        # and outputs an image with 8 channels.
         self.conv1 = torch.nn.Conv2d(3, 9, kernel_size=5)
         self.conv2 = torch.nn.Conv2d(9, 27, kernel_size=5)
         
@@ -128,8 +130,8 @@ class ImageToHsvNet(nn.Module):
         # produces an image with 5 channels. Here, the 5 channels
         # will correspond to class scores.
         #self.final_conv = torch.nn.Conv2d(16, 5, kernel_size=1)
-        self.fc1 = torch.nn.Linear(243, 27)
-        self.fc2 = torch.nn.Linear(27, 3)
+        self.fc1 = torch.nn.Linear(90828, 841)
+        self.fc2 = torch.nn.Linear(841, 3)
 
         
     def forward(self, x):
@@ -139,7 +141,7 @@ class ImageToHsvNet(nn.Module):
         x = F.dropout(F.relu(F.max_pool2d(self.conv1(x), 2)))
         x = F.dropout(F.relu(self.conv2(x)))
         
-        x = x.view(-1, 243)
+        x = x.view(-1, 90828)
         x = F.dropout(self.fc1(x))
         x = self.fc2(x)
         
@@ -250,8 +252,11 @@ class ProductDataset(Dataset):
         product_info = self.get_product_info(index)
         color_string = product_info['raw_color']
         image = self.get_image(index)
+
         # Resize image
-        image.thumbnail((128,128))
+        width, height = image.size
+        image = image.resize((128,128))
+
         color_hsv = self.color_string_to_hsv_fn(color_string)
 
         inputs = self.image_transform(image)
@@ -271,6 +276,6 @@ if __name__ == '__main__':
             color_string_to_hsv_fn=color_to_hsv_fn
             )
 
-    img, color_hsv = dataset[29]
-    print(img, color_hsv)
+    img, color_hsv = dataset[293]
+    print(img.shape, color_hsv)
 
