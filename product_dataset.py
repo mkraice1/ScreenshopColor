@@ -134,9 +134,6 @@ def model_out_to_color_fn( model_hsv ):
     return best_color
 
 
-
-
-
 class ProductDataset(Dataset):
     """
     dataset of 10k products aggregated from multiple vendors,
@@ -217,9 +214,10 @@ class ProductDataset(Dataset):
         pytorch float tensor w vals in [0, 1]
         CORRECT FOR HUE VALUES 0-180
         """
+        hsv_copy = np.copy(hsv)
         if hsv is not None:
-            hsv[0] = hsv[0] * 255./179.
-            return torch.tensor(hsv, dtype=torch.float).div(255.)
+            hsv_copy[0] = hsv_copy[0] * 255./179.
+            return torch.tensor(hsv_copy, dtype=torch.float).div(255.)
         return None
 
     def get_image(self, index):
@@ -243,10 +241,8 @@ class ProductDataset(Dataset):
         image = self.get_image(index)
         width, height = image.size
         color_hsv = self.color_string_to_hsv_fn(color_string)
-
         inputs = self.image_transform(image)
         targets = self.hsv_transform(color_hsv)
-
         return inputs, targets
 
     # NOT GREAT

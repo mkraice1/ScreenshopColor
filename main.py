@@ -28,7 +28,7 @@ def main():
                         help='Path to data')
     parser.add_argument('--cuda', dest='cuda', default="False",
                         help='If set to false, will not use GPU. defaults to False')
-    parser.add_argument('--epochs', dest='epochs', default=1, type=int,
+    parser.add_argument('--epochs', dest='epochs', default=5, type=int,
                         help='Specify the number of epochs for training')
     parser.add_argument('--batch', dest='batch', default=4, type=int,
                         help='Batch size when training')
@@ -65,6 +65,9 @@ def main():
     	model.classifier[6] = Linear(4096, 3)
     	test( model, args.pre_trained_weights_file, do_cuda, args.batch_size,
     		data_loaders["test"] )
+
+    else:
+    	print("No weights file specified. Ending...")
 
 
 
@@ -113,8 +116,8 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 					optimizer.step()
 
 					if batch_idx % 50 == 0:
-						print('Batch: ' + str(batch_idx))
-						print('loss: ', loss.item())
+						print( 'Batch: ' + str(batch_idx) )
+						print( 'loss: ', loss.item() )
 						loss_log.append(loss.item())
 
 				# Sum up loss
@@ -126,7 +129,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 
 			print('Epoch#{:.4d} {} Loss: {:.4f}'.format(phase, epoch_loss))
 
-			# Save the best model so far
+			# Save the best model checkpoint so far
 			if phase == 'val' and epoch_loss < best_loss:
 				best_loss = epoch_loss
 				best_model_wts = copy.deepcopy(model.state_dict())
@@ -190,12 +193,14 @@ def quick_test( model, dataset ):
 
 	for i in range( num_samples ):
 		r = random.randint( 0, len(dataset) )
-		img, hsv_out = dataset[r]
+		img, target_hsv = dataset[r]
+		output_hsv = model( img )
 
-		color_string 	= model_out_to_color_fn(hsv_out)
-		scaled_hsv		= hsv_out * np.array([179,255,255])
+		color_string 	= model_out_to_color_fn(output_hsv)
+		scaled_hsv		= np.floor(output_hsv * np.array([179,255,255]))
 
-
+		print( "Color: " + color_string )
+		print( "HSV Value: " + str(scaled_hsv) )
 
 
 # Prepare datasets and loaders using random seed
@@ -226,10 +231,6 @@ def prep_data( batch_size, seed, data_dir ):
 	train_indices 	= indices[split_test + split_val:]
 	val_indices		= indices[split_test: split_val]
 	test_indices 	= indices[:split_test]
-
-	print(max(train_indices))
-	print(max(val_indices))
-	print(max(test_indices))
 
 	# Creating PT data samplers and loaders:
 	train_sampler 	= SubsetRandomSampler(train_indices)
