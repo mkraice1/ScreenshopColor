@@ -5,7 +5,7 @@ import numpy as np
 import json
 import re
 
-
+# Quick and dirty script to sepearate data I dont want
 # Nones: 		2143
 # Not founds: 	831
 
@@ -16,9 +16,10 @@ bad_dir = "bad_data/"
 move_files = True
 
 def main():
-	nones = 0
-	not_found = 0
-	num_good = 0
+	nones 		= 0
+	not_found 	= 0
+	num_good 	= 0
+	bad_urls 	= 0
 
 	for filename in os.listdir("test_data/"):
 		if filename.endswith(".json"):
@@ -27,6 +28,13 @@ def main():
 			nice_string = re_only_chars.sub(" ", data["raw_color"].lower()).strip()
 			found = False
 			is_none = False
+
+			# Some urls are bad
+			if data["image_url"] is None or not data["image_url"].startswith( 'http' ) :
+				copyfile(test_dir + filename, bad_dir + filename)
+				print( data["image_url"] )
+				bad_urls += 1
+				continue
 
 			for word in nice_string.split():
 				if word in ["none", "nan"]:
@@ -50,8 +58,9 @@ def main():
 					copyfile(test_dir + filename, bad_dir + filename)
 
 
-	print("Nones: " + str(nones))
-	print("Not founds: " + str(not_found))
+	print( "Nones: " + str( nones ) )
+	print( "Not founds: " + str( not_found ) )
+	print( "Bad URLs: " + str( bad_urls ) )
 
 
 

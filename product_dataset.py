@@ -249,9 +249,9 @@ class ProductDataset(Dataset):
 
         return inputs, targets
 
-    # NOT GOOD CHANGE
+    # NOT GREAT
     def __len__(self):
-        return 10000
+        return 6987
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-from product_dataset import ProductDataset, color_to_hsv_fn
+from product_dataset import ProductDataset, color_to_hsv_fn, model_out_to_color_fn
 from torchvision import transforms
 from torchvision.models import alexnet
 from torch.autograd import Variable
@@ -7,13 +7,13 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn import BCEWithLogitsLoss, Linear
 from torch.optim import Adam
+import matplotlib
 import numpy as np
 import argparse
 import math
 import time
 
 input_size 	= 224
-data_size	= 7026
 
 
 def main():
@@ -24,6 +24,8 @@ def main():
                         help='Path to weights file to be loaded. If specified, will train model.')
     parser.add_argument('--save', dest='new_weights_file',
                         help='Path to saved weights file. If specified, will load weights.')
+    parser.add_argument('--data-dir', dest='data_dir', default="./good_data",
+                        help='Path to data')
     parser.add_argument('--cuda', dest='cuda', default="False",
                         help='If set to false, will not use GPU. defaults to False')
     parser.add_argument('--epochs', dest='epochs', default=1, type=int,
@@ -44,32 +46,35 @@ def main():
         do_cuda = False
 
 
-    #Set model
-    model = alexnet(pretrained=True)
-    model.classifier[6] = Linear(4096, 3)
+    #Load data
+    data_loaders = prep_data( args.batch, args.sample_seed, args.data_dir )
 
     if args.new_weights_file and args.pre_trained_weights_file:
-    	print("Only specify a save to save or to load. Not both.")
+    	print( "Only specify a save or load file. Not both.")
 
-
+    # Train the model
     elif args.new_weights_file:
-    	train(model, args.epochs, args.new_weights_file, args.lr, do_cuda,
-    		args.batch, args.sample_seed)
+    	model = alexnet( pretrained=True )
+    	model.classifier[6] = Linear( 4096, 3 )
+    	train( model, args.epochs, args.new_weights_file, args.lr, do_cuda,
+    		args.batch, data_loaders )
+
+    # Test model with given weights file
     elif args.pre_trained_weights_file:
-    	test(model, args.pre_trained_weights_file, )
+    	model = alexnet( pretrained=False )
+    	model.classifier[6] = Linear(4096, 3)
+    	test( model, args.pre_trained_weights_file, do_cuda, args.batch_size,
+    		data_loaders["test"] )
 
 
 
-def train(model, epochs, weights_file, lr, do_cuda, batch_size, sample_seed):
-	
-	data_loaders = prep_data( batch_size, sample_seed )
+def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 
 	loss_fn 	= BCEWithLogitsLoss()
 	optimizer 	= Adam( model.parameters(), lr=lr )
 	loss_log	= []
 	best_loss 	= math.inf
-
-	since = time.time()
+	since 		= time.time()
 
 	# train for set number of epochs
 	for epoch in range( epochs ):
@@ -94,8 +99,6 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, sample_seed):
 					img 		= Variable( sample[0] )
 					target_hsv 	= Variable( sample[1] )
 
-				print(img.shape)
-
 				optimizer.zero_grad()
 
 	            # Put image through model
@@ -112,6 +115,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, sample_seed):
 					if batch_idx % 50 == 0:
 						print('Batch: ' + str(batch_idx))
 						print('loss: ', loss.item())
+						loss_log.append(loss.item())
 
 				# Sum up loss
 				running_loss += loss.item()
@@ -131,24 +135,31 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, sample_seed):
 				val_loss_history.append(epoch_loss)
 
 
+
 	time_elapsed = time.time() - since
 	print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 	print('Best val loss: {:4f}'.format(best_loss))
+
+	matplotlib.pyplot.plot(loss_log)
+	matplotlib.pyplot.title('Loss')
+	matplotlib.pyplot.savefig('Loss_'+str(epochs)+'.png')
 
 	print('Testing on test data...')
 	test(model, weights_file, data_loaders["test"])
 
 
 # Only test model with specified weights
-def test( model, weights_file, do_cuda, batch_size ):
-	data_loaders = prep_data( batch_size, seed )
+def test( model, weights_file, do_cuda, batch_size, data_loader ):
 
 	model.load(weights_file)
+	model.eval()
+
+	quick_test( model, data_loader.dataset )
 
 	total_samples = 0
 
 	# Iter over dataset
-	for batch_idx, sample in enumerate( data_loaders["test"] ):
+	for batch_idx, sample in enumerate( data_loader ):
 		total_samples += batch_size
 		if do_cuda:
 			img 		= Variable( sample[0].cuda() )
@@ -172,11 +183,26 @@ def test( model, weights_file, do_cuda, batch_size ):
 	print('Final Test Loss: {:.4f}'.format(epoch_loss))
 
 
+# Pick random color strings and compare to hsv of output
+def quick_test( model, dataset ):
+	random.seed()
+	num_samples = 5
+
+	for i in range( num_samples ):
+		r = random.randint( 0, len(dataset) )
+		img, hsv_out = dataset[r]
+
+		color_string 	= model_out_to_color_fn(hsv_out)
+		scaled_hsv		= hsv_out * np.array([179,255,255])
+
+
+
+
 # Prepare datasets and loaders using random seed
-def prep_data( batch_size, seed ):
+def prep_data( batch_size, seed, data_dir ):
 	# Load dataset
 	dataset = ProductDataset(
-            data_dir='./good_data',
+            data_dir=data_dir,
             download=False,
             image_transform=transforms.Compose([
 					        transforms.Resize(input_size),
@@ -187,6 +213,7 @@ def prep_data( batch_size, seed ):
             )
 
 	# Split into train and validation 
+	data_size	= len(dataset)
 	val_split 	= 0.15
 	test_split 	= 0.05
 	shuffle 	= True
@@ -199,6 +226,10 @@ def prep_data( batch_size, seed ):
 	train_indices 	= indices[split_test + split_val:]
 	val_indices		= indices[split_test: split_val]
 	test_indices 	= indices[:split_test]
+
+	print(max(train_indices))
+	print(max(val_indices))
+	print(max(test_indices))
 
 	# Creating PT data samplers and loaders:
 	train_sampler 	= SubsetRandomSampler(train_indices)
@@ -214,13 +245,6 @@ def prep_data( batch_size, seed ):
                                     sampler=test_sampler)
 
 	return data_loaders
-
-
-
-# TODO
-# Test accuracy
-# Handle None hsv properly
-# Fn for output -> color_string
 	
 
 
