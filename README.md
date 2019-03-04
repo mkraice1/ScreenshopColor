@@ -1,6 +1,6 @@
 # ScreenshopColor
 
-'''
+```
 optional arguments:
   -h, --help            show this help message and exit
   --load PRE_TRAINED_WEIGHTS_FILE
@@ -16,8 +16,7 @@ optional arguments:
   --lr LR               Learning rate
   --sample-seed SAMPLE_SEED
                         Seed for random sampling of dataset
-'''
-
+```
 
 
 Using AlexNet to predict hsv values of images.
