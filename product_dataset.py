@@ -114,38 +114,27 @@ def color_to_hsv_fn(color_string: str) -> np.array:
             return color_table[word]
 
     # BAD CHANGE LATER
-    return None
+    return np.array([0,0,0])
+
+
+# Convert model output to closest color string
+def model_out_to_color_fn( model_hsv ):
+    normalizer  = np.array([179.,255.,255.])
+    best_diff   = 1.
+    best_color  = ""
+
+    for color, hsv in color_table.items():
+        hsv_norm = hsv / normalizer
+        diff = np.mean( abs(model_hsv - hsv_norm) )
+
+        if diff < best_diff:
+            best_diff   = diff
+            best_color  = color
+
+    return best_color
 
 
 
-# NN 
-class ImageToHsvNet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        
-        self.conv1 = torch.nn.Conv2d(3, 9, kernel_size=5)
-        self.conv2 = torch.nn.Conv2d(9, 27, kernel_size=5)
-        
-        # 1x1 convolution that takes in an image with 16 channels and
-        # produces an image with 5 channels. Here, the 5 channels
-        # will correspond to class scores.
-        #self.final_conv = torch.nn.Conv2d(16, 5, kernel_size=1)
-        self.fc1 = torch.nn.Linear(90828, 841)
-        self.fc2 = torch.nn.Linear(841, 3)
-
-        
-    def forward(self, x):
-        # Convolutions work with images of shape
-        # [batch_size, num_channels, height, width]
-        
-        x = F.dropout(F.relu(F.max_pool2d(self.conv1(x), 2)))
-        x = F.dropout(F.relu(self.conv2(x)))
-        
-        x = x.view(-1, 90828)
-        x = F.dropout(self.fc1(x))
-        x = self.fc2(x)
-        
-        return x
 
 
 class ProductDataset(Dataset):
@@ -252,11 +241,7 @@ class ProductDataset(Dataset):
         product_info = self.get_product_info(index)
         color_string = product_info['raw_color']
         image = self.get_image(index)
-
-        # Resize image
         width, height = image.size
-        image = image.resize((128,128))
-
         color_hsv = self.color_string_to_hsv_fn(color_string)
 
         inputs = self.image_transform(image)
@@ -264,18 +249,26 @@ class ProductDataset(Dataset):
 
         return inputs, targets
 
+    # NOT GOOD CHANGE
     def __len__(self):
         return 10000
 
 
 if __name__ == '__main__':
+    input_size = 224
     dataset = ProductDataset(
             data_dir='./test_data',
             download=False,
-            image_transform=lambda pil_im: transforms.ToTensor()(pil_im),
+            image_transform=transforms.Compose([
+                            transforms.Resize(input_size),
+                            transforms.CenterCrop(input_size),
+                            transforms.ToTensor(),
+                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
             color_string_to_hsv_fn=color_to_hsv_fn
             )
 
-    img, color_hsv = dataset[293]
+    img, color_hsv = dataset[1]
     print(img.shape, color_hsv)
+
+    print(model_out_to_color_fn(np.array([.2, .8, .8])))
 
