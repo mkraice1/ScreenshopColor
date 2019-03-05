@@ -62,7 +62,7 @@ def main():
 
     # Train the model
     elif args.new_weights_file:
-        model = alexnet( pretrained=True )
+        model = alexnet( pretrained=False )
         model.classifier[6] = Linear( 4096, 3 )
         train( model, args.epochs, args.new_weights_file, args.lr, do_cuda,
             args.batch, data_loaders )
@@ -136,7 +136,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
             #After epoch is done...
             epoch_loss = running_loss / total_samples
 
-            print('Epoch#{:.4d} {} Loss: {:.4f}'.format(phase, epoch_loss))
+            print('Epoch#{:d} {} Loss: {:.4f}'.format(epoch, phase, epoch_loss))
 
             # Save the best model checkpoint so far
             if phase == 'val' and epoch_loss < best_loss:
