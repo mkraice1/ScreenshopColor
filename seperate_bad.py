@@ -6,8 +6,9 @@ import json
 import re
 
 # Quick and dirty script to sepearate data I dont want
-# Nones: 		2143
-# Not founds: 	831
+# Nones: 2142
+# Not founds: 822
+# Bad URLs: 49
 
 re_only_chars = re.compile('[^a-z]')
 test_dir = "test_data/"
@@ -16,51 +17,51 @@ bad_dir = "bad_data/"
 move_files = True
 
 def main():
-	nones 		= 0
-	not_found 	= 0
-	num_good 	= 0
-	bad_urls 	= 0
+    nones       = 0
+    not_found   = 0
+    num_good    = 0
+    bad_urls    = 0
 
-	for filename in os.listdir("test_data/"):
-		if filename.endswith(".json"):
-			json_data=open(test_dir + filename).read()
-			data = json.loads(json_data)
-			nice_string = re_only_chars.sub(" ", data["raw_color"].lower()).strip()
-			found = False
-			is_none = False
+    for filename in os.listdir("test_data/"):
+        if filename.endswith(".json"):
+            json_data=open(test_dir + filename).read()
+            data = json.loads(json_data)
+            nice_string = re_only_chars.sub(" ", data["raw_color"].lower()).strip()
+            found = False
+            is_none = False
 
-			# Some urls are bad
-			if data["image_url"] is None or not data["image_url"].startswith( 'http' ) :
-				copyfile(test_dir + filename, bad_dir + filename)
-				print( data["image_url"] )
-				bad_urls += 1
-				continue
+            # Some urls are bad
+            if data["image_url"] is None or not data["image_url"].startswith( 'http' ) :
+                copyfile(test_dir + filename, bad_dir + filename)
+                print( data["image_url"] )
+                bad_urls += 1
+                continue
 
-			for word in nice_string.split():
-				if word in ["none", "nan"]:
-					is_none = True
-					nones += 1
-					break
-				elif word in color_table:
-					found = True
-					break
-
-
-			if not found and not is_none:
-				not_found += 1
-
-			if move_files:
-				if found:
-					new_file = str(num_good) + "_info.json"
-					copyfile(test_dir + filename, good_dir + new_file)
-					num_good += 1
-				else:
-					copyfile(test_dir + filename, bad_dir + filename)
+            for word in nice_string.split():
+                if word in ["none", "nan"]:
+                    is_none = True
+                    nones += 1
+                    break
+                elif word in color_table:
+                    found = True
+                    break
 
 
-	print( "Nones: " + str( nones ) )
-	print( "Not founds: " + str( not_found ) )
-	print( "Bad URLs: " + str( bad_urls ) )
+            if not found and not is_none:
+                not_found += 1
+
+            if move_files:
+                if found:
+                    new_file = str(num_good) + "_info.json"
+                    copyfile(test_dir + filename, good_dir + new_file)
+                    num_good += 1
+                else:
+                    copyfile(test_dir + filename, bad_dir + filename)
+
+
+    print( "Nones: " + str( nones ) )
+    print( "Not founds: " + str( not_found ) )
+    print( "Bad URLs: " + str( bad_urls ) )
 
 
 
@@ -147,4 +148,4 @@ color_table = {
                 }
 
 if __name__ == "__main__":
-	main()
+    main()

@@ -217,7 +217,7 @@ class ProductDataset(Dataset):
         hsv_copy = np.copy(hsv)
         if hsv is not None:
             hsv_copy[0] = hsv_copy[0] * 255./179.
-            return torch.tensor(hsv_copy, dtype=torch.float).div(255.)
+            return torch.tensor( hsv_copy, dtype=torch.float ).div( 255. )
         return None
 
     def get_image(self, index):
@@ -240,13 +240,13 @@ class ProductDataset(Dataset):
         return img
 
     def __getitem__(self, index):
-        product_info = self.get_product_info(index)
-        color_string = product_info['raw_color']
-        image = self.get_image(index)
-        width, height = image.size
-        color_hsv = self.color_string_to_hsv_fn(color_string)
-        inputs = self.image_transform(image)
-        targets = self.hsv_transform(color_hsv)
+        product_info    = self.get_product_info(index)
+        color_string    = product_info['raw_color']
+        image           = self.get_image(index)
+        width, height   = image.size
+        color_hsv       = self.color_string_to_hsv_fn(color_string)
+        inputs          = self.image_transform(image)
+        targets         = self.hsv_transform(color_hsv)
         # if inputs.shape[0] != 3:
         #     print(index)
         #     print(product_info["image_url"])
@@ -279,8 +279,3 @@ if __name__ == '__main__':
         except Exception as e:
             print(e)
             print( "Bad i: " + str(i) )
-
-    print(img.shape, color_hsv)
-
-    print(model_out_to_color_fn(np.array([.2, .8, .8])))
-
