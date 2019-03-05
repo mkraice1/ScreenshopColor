@@ -36,6 +36,9 @@ normal_colors = {"pink": pink_set, "red": red_set, "maroon": maroon_set, "orange
 				"none": none_set}
 
 
+
+# The actual function is a little different from this
+
 def main():
 	others = 0
 	# Go through downloaded data and organize colors

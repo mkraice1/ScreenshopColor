@@ -18,6 +18,11 @@ import time
 
 input_size 	= 224
 
+# TODO
+# add a quick test option
+# add function doc strings
+# add arguments for diff data split
+
 
 def main():
 
@@ -53,7 +58,7 @@ def main():
     data_loaders = prep_data( args.batch, args.sample_seed, args.data_dir )
 
     if args.new_weights_file and args.pre_trained_weights_file:
-    	print( "Only specify a save or load file. Not both.")
+    	print( "Only specify a save or load file. Not both." )
 
     # Train the model
     elif args.new_weights_file:
@@ -84,7 +89,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 
 	# train for set number of epochs
 	for epoch in range( epochs ):
-		print( "epoch: " + str(epoch) )
+		print( "epoch: " + str( epoch ) )
 
 		for phase in ["train", "val"]:
 			if phase == 'train':
@@ -118,6 +123,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 					loss.backward()
 					optimizer.step()
 
+					# Print updates
 					if batch_idx % 50 == 0:
 						print( 'Batch: ' + str(batch_idx) )
 						print( 'loss: ', loss.item() )
@@ -142,6 +148,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 
 
 
+	# Print some stats
 	time_elapsed = time.time() - since
 	print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 	print('Best val loss: {:4f}'.format(best_loss))
@@ -157,7 +164,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 # Only test model with specified weights
 def test( model, weights_file, do_cuda, batch_size, data_loader ):
 
-	model.load_state_dict(load(weights_file))
+	model.load_state_dict( load( weights_file ) )
 	model.eval()
 
 	quick_test( model, data_loader.dataset )
@@ -177,16 +184,16 @@ def test( model, weights_file, do_cuda, batch_size, data_loader ):
 		optimizer.zero_grad()
 
         # Put image through model
-		output_hsv = model(img)
+		output_hsv = model( img )
 
         # Loss
-		loss = loss_fn(output_hsv, target_hsv)
+		loss = loss_fn( output_hsv, target_hsv )
 
 		# Sum up loss
 		running_loss += loss.item()
 
 	epoch_loss = running_loss / total_samples
-	print('Final Test Loss: {:.4f}'.format(epoch_loss))
+	print( 'Final Test Loss: {:.4f}'.format( epoch_loss ) )
 
 
 # Pick random color strings and compare to hsv of output
@@ -199,11 +206,11 @@ def quick_test( model, dataset ):
 		img, target_hsv = dataset[r]
 		output_hsv = model( img )
 
-		color_string 	= model_out_to_color_fn(output_hsv)
-		scaled_hsv		= np.floor(output_hsv * np.array([179,255,255]))
+		color_string 	= model_out_to_color_fn( output_hsv )
+		scaled_hsv		= np.floor( output_hsv * np.array([179,255,255])) 
 
 		print( "Color: " + color_string )
-		print( "HSV Value: " + str(scaled_hsv) )
+		print( "HSV Value: " + str( scaled_hsv ) )
 
 
 # Prepare datasets and loaders using random seed
@@ -213,40 +220,40 @@ def prep_data( batch_size, seed, data_dir ):
             data_dir=data_dir,
             download=False,
             image_transform=transforms.Compose([
-					        transforms.Resize(input_size),
-					        transforms.CenterCrop(input_size),
+					        transforms.Resize( input_size ),
+					        transforms.CenterCrop( input_size ),
 					        transforms.ToTensor(),
-					        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+					        transforms.Normalize( [0.485, 0.456, 0.406], [0.229, 0.224, 0.225] )]),
             color_string_to_hsv_fn=color_to_hsv_fn
             )
 
 	# Split into train and validation 
-	data_size	= len(dataset)
+	data_size	= len( dataset )
 	val_split 	= 0.15
 	test_split 	= 0.05
 	shuffle 	= True
-	indices 	= list(range(data_size))
-	split_val 	= int(np.floor(val_split * data_size))
-	split_test 	= int(np.floor(test_split * data_size))
+	indices 	= list( range( data_size ) )
+	split_val 	= int( np.floor( val_split * data_size ) )
+	split_test 	= int( np.floor( test_split * data_size) )
 	if shuffle :
-	    np.random.seed(seed)
-	    np.random.shuffle(indices)
+	    np.random.seed( seed )
+	    np.random.shuffle( indices )
 	train_indices 	= indices[split_test + split_val:]
 	val_indices		= indices[split_test: split_val]
 	test_indices 	= indices[:split_test]
 
 	# Creating PT data samplers and loaders:
-	train_sampler 	= SubsetRandomSampler(train_indices)
-	valid_sampler 	= SubsetRandomSampler(val_indices)
-	test_sampler 	= SubsetRandomSampler(test_indices)
+	train_sampler 	= SubsetRandomSampler( train_indices )
+	valid_sampler 	= SubsetRandomSampler( val_indices )
+	test_sampler 	= SubsetRandomSampler( test_indices )
 
 	data_loaders = {}
-	data_loaders["train"]	= DataLoader(dataset, batch_size=batch_size, 
-                                    sampler=train_sampler)
-	data_loaders["val"] 	= DataLoader(dataset, batch_size=batch_size,
-                                    sampler=valid_sampler)
-	data_loaders["test"] 	= DataLoader(dataset, batch_size=batch_size,
-                                    sampler=test_sampler)
+	data_loaders["train"]	= DataLoader( dataset, batch_size=batch_size, 
+                                    sampler=train_sampler )
+	data_loaders["val"] 	= DataLoader( dataset, batch_size=batch_size,
+                                    sampler=valid_sampler )
+	data_loaders["test"] 	= DataLoader( dataset, batch_size=batch_size,
+                                    sampler=test_sampler )
 
 	return data_loaders
 	
