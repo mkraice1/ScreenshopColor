@@ -22,3 +22,7 @@ optional arguments:
 Using AlexNet to predict hsv values of images.
 
 Run seperate_bad.py first to seperate samples with missing url or color
+
+
+NOTE: Error when loading png url's. returns non-3 channel tensor. 
+      Download all images before training.

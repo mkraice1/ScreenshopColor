@@ -7,6 +7,10 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn import BCEWithLogitsLoss, Linear
 from torch.optim import Adam
+<<<<<<< HEAD
+from torch import save, load
+=======
+>>>>>>> parent of 32d0188... Fixed imports
 import matplotlib
 import numpy as np
 import argparse
@@ -154,7 +158,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 # Only test model with specified weights
 def test( model, weights_file, do_cuda, batch_size, data_loader ):
 
-	model.load(weights_file)
+	model.load_state_dict(load(weights_file))
 	model.eval()
 
 	quick_test( model, data_loader.dataset )

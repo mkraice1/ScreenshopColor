@@ -223,6 +223,9 @@ class ProductDataset(Dataset):
     def get_image(self, index):
         """"
         load an image if downloaded, else get from its url
+        Note: Weird error in __getitem__ when getting img from png url
+            From url, will return non-3 channel img
+            From file, will return 3 channel...
         """
         fp = self._img_path(index)
         if os.path.exists(fp):
@@ -232,6 +235,7 @@ class ProductDataset(Dataset):
             response = requests.get(url)
             img = Image.open(BytesIO(response.content))
             os.makedirs(os.path.dirname(fp), exist_ok=True)
+
             img.convert('RGB').save(fp)
         return img
 
@@ -243,6 +247,9 @@ class ProductDataset(Dataset):
         color_hsv = self.color_string_to_hsv_fn(color_string)
         inputs = self.image_transform(image)
         targets = self.hsv_transform(color_hsv)
+        # if inputs.shape[0] != 3:
+        #     print(index)
+        #     print(product_info["image_url"])
         return inputs, targets
 
     # NOT GREAT
@@ -253,7 +260,7 @@ class ProductDataset(Dataset):
 if __name__ == '__main__':
     input_size = 224
     dataset = ProductDataset(
-            data_dir='./test_data',
+            data_dir='./good_data',
             download=False,
             image_transform=transforms.Compose([
                             transforms.Resize(input_size),
@@ -263,7 +270,16 @@ if __name__ == '__main__':
             color_string_to_hsv_fn=color_to_hsv_fn
             )
 
-    img, color_hsv = dataset[1]
+    # Run first to dl all imgs
+    for i in range(len(dataset)):
+        if i % 100 == 0:
+            print( i )
+        try:
+            img, color_hsv = dataset[i]
+        except Exception as e:
+            print(e)
+            print( "Bad i: " + str(i) )
+
     print(img.shape, color_hsv)
 
     print(model_out_to_color_fn(np.array([.2, .8, .8])))
