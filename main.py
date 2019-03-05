@@ -40,7 +40,7 @@ def main():
     parser.add_argument('--model', dest='model_type', default="alexnet",
                         help='Type of model: alexnet, resnet')
     parser.add_argument('--cuda', dest='cuda', default="False",
-                        help='If set to false, will not use GPU. defaults to False')
+                        help='If set to true, will use GPU. defaults to False')
     parser.add_argument('--epochs', dest='epochs', default=5, type=int,
                         help='Specify the number of epochs for training')
     parser.add_argument('--batch', dest='batch', default=4, type=int,
