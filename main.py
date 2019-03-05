@@ -7,10 +7,9 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn import BCEWithLogitsLoss, Linear
 from torch.optim import Adam
-<<<<<<< HEAD
+
 from torch import save, load
-=======
->>>>>>> parent of 32d0188... Fixed imports
+
 import matplotlib
 import numpy as np
 import argparse
