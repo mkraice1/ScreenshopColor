@@ -1,6 +1,6 @@
 from product_dataset import ProductDataset, color_to_hsv_fn, model_out_to_color_fn
 from torchvision import transforms
-from torchvision.models import alexnet
+from torchvision.models import alexnet, resnet18
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
@@ -15,6 +15,7 @@ import numpy as np
 import argparse
 import math
 import time
+import copy
 
 input_size  = 224
 
@@ -34,6 +35,8 @@ def main():
                         help='Path to saved weights file. If specified, will load weights.')
     parser.add_argument('--data-dir', dest='data_dir', default="./good_data",
                         help='Path to data')
+    parser.add_argument('--model', dest='model_type', default="alexnet",
+                        help='Type of model: alexnet, resnet')
     parser.add_argument('--cuda', dest='cuda', default="False",
                         help='If set to false, will not use GPU. defaults to False')
     parser.add_argument('--epochs', dest='epochs', default=5, type=int,
@@ -56,21 +59,25 @@ def main():
 
     #Load data
     data_loaders = prep_data( args.batch, args.sample_seed, args.data_dir )
+    if args.model_type == "alexnet":
+        model = alexnet( pretrained=False )
+        model.classifier[6] = Linear( 4096, 3 )
+    elif args.model_type == "resnet":
+        model = resnet18()
+        model.fc = Linear(512, 3)
+    else:
+        print("No model selected")
 
     if args.new_weights_file and args.pre_trained_weights_file:
         print( "Only specify a save or load file. Not both." )
 
     # Train the model
     elif args.new_weights_file:
-        model = alexnet( pretrained=False )
-        model.classifier[6] = Linear( 4096, 3 )
         train( model, args.epochs, args.new_weights_file, args.lr, do_cuda,
             args.batch, data_loaders )
 
     # Test model with given weights file
     elif args.pre_trained_weights_file:
-        model = alexnet( pretrained=False )
-        model.classifier[6] = Linear(4096, 3)
         test( model, args.pre_trained_weights_file, do_cuda, args.batch_size,
             data_loaders["test"] )
 
@@ -102,7 +109,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
 
             # Iter over dataset
             for batch_idx, sample in enumerate( data_loaders[phase] ):
-                total_samples += batch_size
+                total_samples += 1
                 if do_cuda:
                     img         = Variable( sample[0].cuda() )
                     target_hsv  = Variable( sample[1].cuda() )
@@ -142,7 +149,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
             if phase == 'val' and epoch_loss < best_loss:
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(model.state_dict())
-                torch.save(best_model_wts, weights_file)
+                save(best_model_wts, weights_file)
             if phase == 'val':
                 val_loss_history.append(epoch_loss)
 
@@ -173,7 +180,7 @@ def test( model, weights_file, do_cuda, batch_size, data_loader ):
 
     # Iter over dataset
     for batch_idx, sample in enumerate( data_loader ):
-        total_samples += batch_size
+        total_samples += 1
         if do_cuda:
             img         = Variable( sample[0].cuda() )
             target_hsv  = Variable( sample[1].cuda() )
