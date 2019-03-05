@@ -11,11 +11,13 @@ from torch.optim import Adam
 from torch import save, load
 
 import matplotlib
+import matplotlib.pyplot
 import numpy as np
 import argparse
 import math
 import time
 import copy
+import random
 
 input_size  = 224
 
@@ -150,8 +152,6 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(model.state_dict())
                 save(best_model_wts, weights_file)
-            if phase == 'val':
-                val_loss_history.append(epoch_loss)
 
 
 
@@ -165,7 +165,7 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
     matplotlib.pyplot.savefig('Loss_'+str(epochs)+'.png')
 
     print('Testing on test data...')
-    test(model, weights_file, data_loaders["test"])
+    test( model, weights_file, do_cuda, batch_size, data_loaders["val"] )
 
 
 # Only test model with specified weights
@@ -174,9 +174,11 @@ def test( model, weights_file, do_cuda, batch_size, data_loader ):
     model.load_state_dict( load( weights_file ) )
     model.eval()
 
-    quick_test( model, data_loader.dataset )
+    quick_test( model, data_loader.dataset, do_cuda )
 
-    total_samples = 0
+    total_samples   = 0
+    running_loss    = 0
+    loss_fn         = BCEWithLogitsLoss()
 
     # Iter over dataset
     for batch_idx, sample in enumerate( data_loader ):
@@ -187,8 +189,6 @@ def test( model, weights_file, do_cuda, batch_size, data_loader ):
         else:
             img         = Variable( sample[0] )
             target_hsv  = Variable( sample[1] )
-
-        optimizer.zero_grad()
 
         # Put image through model
         output_hsv = model( img )
@@ -204,15 +204,23 @@ def test( model, weights_file, do_cuda, batch_size, data_loader ):
 
 
 # Pick random color strings and compare to hsv of output
-def quick_test( model, dataset ):
+def quick_test( model, dataset, do_cuda ):
     random.seed()
     num_samples = 5
 
     for i in range( num_samples ):
-        r = random.randint( 0, len(dataset) )
+        r = random.randint( 0, len( dataset ) )
         img, target_hsv = dataset[r]
-        output_hsv = model( img )
 
+        # Convert to proper form
+        if do_cuda:
+            img = Variable(img.cuda())
+        else:
+            img = Variable(img)
+        img = img.unsqueeze(0)
+
+        output_hsv = model( img )
+        output_hsv = output_hsv.detach().data.numpy()[0]
         color_string    = model_out_to_color_fn( output_hsv )
         scaled_hsv      = np.floor( output_hsv * np.array([179,255,255])) 
 

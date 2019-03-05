@@ -123,6 +123,7 @@ def model_out_to_color_fn( model_hsv ):
     best_diff   = 1.
     best_color  = ""
 
+
     for color, hsv in color_table.items():
         hsv_norm = hsv / normalizer
         diff = np.mean( abs(model_hsv - hsv_norm) )
