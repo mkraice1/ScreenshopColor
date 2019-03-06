@@ -5,7 +5,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
-from torch.nn import BCEWithLogitsLoss, Linear
+from torch.nn import BCEWithLogitsLoss, MSELoss, Linear
 from torch.optim import Adam
 
 from torch import save, load
@@ -39,6 +39,8 @@ def main():
                         help='Path to data')
     parser.add_argument('--model', dest='model_type', default="alexnet",
                         help='Type of model: alexnet, resnet')
+    parser.add_argument('--prob-type', dest='prob', default="reg",
+                        help='We doing this as multi-class or regression? class, reg')
     parser.add_argument('--cuda', dest='cuda', default="False",
                         help='If set to true, will use GPU. defaults to False')
     parser.add_argument('--epochs', dest='epochs', default=5, type=int,
@@ -51,6 +53,7 @@ def main():
                         help='Seed for random sampling of dataset')
     args = parser.parse_args()
 
+
     # Using cuda?
     if args.cuda == "True":
         do_cuda = True
@@ -59,28 +62,48 @@ def main():
         do_cuda = False
 
 
-    #Load data
+    # Multi-class or Regression problem?
+    if args.prob.lower() == "class":
+        num_outputs = 14
+        loss_fn = BCEWithLogitsLoss()
+    elif args.prob.lower() == "reg":
+        num_outputs = 3
+        loss_fn = MSELoss()
+    else:
+        print( "Invalid loss selected" )
+        exit()
+
+
+    #Load data and models
     data_loaders = prep_data( args.batch, args.sample_seed, args.data_dir )
     if args.model_type == "alexnet":
         model = alexnet( pretrained=False )
-        model.classifier[6] = Linear( 4096, 3 )
+        model.classifier[6] = Linear( 4096, num_outputs )
+
     elif args.model_type == "resnet":
         model = resnet18()
-        model.fc = Linear(512, 3)
+        model.fc = Linear( 512, num_outputs )
     else:
         print("No model selected")
 
+
+    # Train or test a model
     if args.new_weights_file and args.pre_trained_weights_file:
         print( "Only specify a save or load file. Not both." )
 
     # Train the model
     elif args.new_weights_file:
+        print( "Training model..." )
         train( model, args.epochs, args.new_weights_file, args.lr, do_cuda,
-            args.batch, data_loaders )
+            args.batch, data_loaders, loss_fn )
+
+        print( "Testing model on test data..." )
+        test( model, args.new_weights_file, do_cuda, args.batch,
+            data_loaders["test"] )
 
     # Test model with given weights file
     elif args.pre_trained_weights_file:
-        test( model, args.pre_trained_weights_file, do_cuda, args.batch_size,
+        test( model, args.pre_trained_weights_file, do_cuda, args.batch,
             data_loaders["test"] )
 
     else:
@@ -88,9 +111,9 @@ def main():
 
 
 
-def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
+def train( model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders,
+        loss_fn ):
 
-    loss_fn     = BCEWithLogitsLoss()
     optimizer   = Adam( model.parameters(), lr=lr )
     loss_log    = []
     best_loss   = math.inf
@@ -164,9 +187,6 @@ def train(model, epochs, weights_file, lr, do_cuda, batch_size, data_loaders):
     matplotlib.pyplot.title('Loss')
     matplotlib.pyplot.savefig('Loss_'+str(epochs)+'.png')
 
-    print('Testing on test data...')
-    test( model, weights_file, do_cuda, batch_size, data_loaders["val"] )
-
 
 # Only test model with specified weights
 def test( model, weights_file, do_cuda, batch_size, data_loader ):
@@ -204,12 +224,11 @@ def test( model, weights_file, do_cuda, batch_size, data_loader ):
 
 
 # Pick random color strings and compare to hsv of output
-def quick_test( model, dataset, do_cuda ):
+def quick_test( model, dataset, do_cuda, num_samples=5 ):
     random.seed()
-    num_samples = 5
 
     for i in range( num_samples ):
-        r = random.randint( 0, len( dataset ) )
+        r = random.randint( 0, len(dataset) )
         img, target_hsv = dataset[r]
 
         # Convert to proper form

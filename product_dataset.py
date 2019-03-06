@@ -23,7 +23,25 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Variables for string to hsv
 re_only_chars = re.compile('[^a-z]')
-directory = "test_data/"
+directory = "good_data/"
+
+# Possiibly need if this is a multi-class problem?
+# hsv_array = np.array([
+#                     np.array([172, 242, 196]),
+#                     np.array([0,255,255]),
+#                     np.array([15,255,255]),
+#                     np.array([27,255,255]),
+#                     np.array([50,255,255]),
+#                     np.array([85,255,255]),
+#                     np.array([120,255,255]),
+#                     np.array([120,255,122]),
+#                     np.array([150,255,255]),
+#                     np.array([0,0,255]),
+#                     np.array([0,0,0]),
+#                     np.array([0,0,122]),
+#                     np.array([15,153,204]),
+#                     np.array([15,229,122])
+#                     ])
 color_table = {
                 "pink": np.array([172, 242, 196]),
                 "rose": np.array([172, 242, 196]),
@@ -105,6 +123,10 @@ color_table = {
                 "chocolate": np.array([15,229,122]),
                 }
 
+
+# def hsv_to_model_out( hsv ):
+#     pass
+
 # Convert color string to hsv value
 def color_to_hsv_fn(color_string: str) -> np.array:
     nice_string = re_only_chars.sub(" ", color_string.lower()).strip()
@@ -113,7 +135,7 @@ def color_to_hsv_fn(color_string: str) -> np.array:
         if word in color_table:
             return color_table[word]
 
-    # BAD CHANGE LATER
+    # Don't want None
     return np.array([0,0,0])
 
 
@@ -133,6 +155,11 @@ def model_out_to_color_fn( model_hsv ):
             best_color  = color
 
     return best_color
+
+# Convert model output to closest color string
+# def model_class_vector_to_color_fn( model_hsv ):
+#     color_i = np.argmax( model_hsv )
+#     return hsv_array[color_i]
 
 
 class ProductDataset(Dataset):
@@ -221,6 +248,20 @@ class ProductDataset(Dataset):
             return torch.tensor( hsv_copy, dtype=torch.float ).div( 255. )
         return None
 
+    # @staticmethod
+    # def hsv_to_class_vector(hsv):
+    #     """
+    #     Possibly use if multi-class problem
+    #     """
+    #     hsv_vector = np.zeros(len(hsv_array))
+    #     myindex = -1
+    #     for i in range( len(hsv_array) ):
+    #         if np.array_equal( hsv_array[i], hsv ):
+    #             myindex = i
+    #             break
+    #     hsv_vector[myindex] = 1.
+    #     return torch.tensor( hsv_vector, dtype=torch.float )
+
     def get_image(self, index):
         """"
         load an image if downloaded, else get from its url
@@ -236,7 +277,6 @@ class ProductDataset(Dataset):
             response = requests.get(url)
             img = Image.open(BytesIO(response.content))
             os.makedirs(os.path.dirname(fp), exist_ok=True)
-
             img.convert('RGB').save(fp)
         return img
 
@@ -248,6 +288,7 @@ class ProductDataset(Dataset):
         color_hsv       = self.color_string_to_hsv_fn(color_string)
         inputs          = self.image_transform(image)
         targets         = self.hsv_transform(color_hsv)
+        #targets         = self.hsv_to_class_vector(color_hsv)
         # if inputs.shape[0] != 3:
         #     print(index)
         #     print(product_info["image_url"])
@@ -271,12 +312,13 @@ if __name__ == '__main__':
             color_string_to_hsv_fn=color_to_hsv_fn
             )
 
+    img, color_hsv = dataset[2]
     # Run first to dl all imgs
-    for i in range(len(dataset)):
-        if i % 100 == 0:
-            print( i )
-        try:
-            img, color_hsv = dataset[i]
-        except Exception as e:
-            print(e)
-            print( "Bad i: " + str(i) )
+    # for i in range(len(dataset)):
+    #     if i % 100 == 0:
+    #         print( i )
+    #     try:
+    #         img, color_hsv = dataset[i]
+    #     except Exception as e:
+    #         print(e)
+    #         print( "Bad i: " + str(i) )
