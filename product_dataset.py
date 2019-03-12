@@ -17,6 +17,7 @@ import numpy as np
 import os
 import json
 import re
+import math
 
 # gpu available?
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -46,11 +47,11 @@ color_table = {
                 "pink": np.array([172, 242, 196]),
                 "rose": np.array([172, 242, 196]),
                 "blush": np.array([172, 242, 196]),
-                "red": np.array([0,255,255]),
-                "magenta": np.array([0,255,255]),
-                "berry": np.array([0,255,255]),
-                "maroon": np.array([0,0,122]),
-                "burgundy": np.array([0,0,122]),
+                "red": np.array([179,255,255]),
+                "magenta": np.array([179,255,255]),
+                "berry": np.array([179,255,255]),
+                "maroon": np.array([179,0,122]),
+                "burgundy": np.array([179,0,122]),
                 "orange": np.array([15,255,255]),
                 "rust": np.array([15,255,255]),
                 "apricot": np.array([15,255,255]),
@@ -141,13 +142,13 @@ def color_to_hsv_fn(color_string: str) -> np.array:
 
 # Convert model output to closest color string
 def model_out_to_color_fn( model_hsv ):
-    normalizer  = np.array([179.,255.,255.])
-    best_diff   = 1.
+    hsv_scale   = np.array([179.,255.,255.])
+    best_diff   = math.inf
     best_color  = ""
 
 
     for color, hsv in color_table.items():
-        hsv_norm = hsv / normalizer
+        hsv_norm = hsv / hsv_scale
         diff = np.linalg.norm( model_hsv - hsv_norm )
 
         if diff < best_diff:

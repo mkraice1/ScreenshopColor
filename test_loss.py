@@ -1,15 +1,20 @@
 from torch import tensor, float
 from torch.autograd import Variable
-from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
+from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss, BCELoss, Sigmoid
 import numpy as np
 
-loss_fn = MSELoss()
+bcewithlogits_fn = BCEWithLogitsLoss()
+bce_fn = BCELoss()
+sig = Sigmoid()
 
-t1 = Variable(tensor([1., 0., 0.]).unsqueeze(0))
-t2 = Variable(tensor([0., 22., .9]).unsqueeze(0))
+#t1 = Variable(tensor([[.2, .8, .8], [.2, .8, .8]]))
+#t2 = Variable(tensor([[.1, .9, .9], [.1, .9, .9]]))
+t1 = Variable(tensor([1., 1., .0]).unsqueeze(0))
+t2 = Variable(tensor([1., 1., .0]).unsqueeze(0))
 
-print(t1.shape)
+#t2 = Variable(tensor([0]))
 
-loss = loss_fn( t1, t2 )
+print(sig(t1))
 
-print( loss.item() )
+loss = bce_fn( t1, t2 )
+print( "BCE then sigmoid: " + str(loss.item()) )
