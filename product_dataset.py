@@ -249,20 +249,6 @@ class ProductDataset(Dataset):
             return torch.tensor( hsv_copy, dtype=torch.float ).div( 255. )
         return None
 
-    # @staticmethod
-    # def hsv_to_class_vector(hsv):
-    #     """
-    #     Possibly use if multi-class problem
-    #     """
-    #     hsv_vector = np.zeros(len(hsv_array))
-    #     myindex = -1
-    #     for i in range( len(hsv_array) ):
-    #         if np.array_equal( hsv_array[i], hsv ):
-    #             myindex = i
-    #             break
-    #     hsv_vector[myindex] = 1.
-    #     return torch.tensor( hsv_vector, dtype=torch.float )
-
     def get_image(self, index):
         """"
         load an image if downloaded, else get from its url
@@ -315,11 +301,11 @@ if __name__ == '__main__':
 
     img, color_hsv = dataset[2]
     # Run first to dl all imgs
-    # for i in range(len(dataset)):
-    #     if i % 100 == 0:
-    #         print( i )
-    #     try:
-    #         img, color_hsv = dataset[i]
-    #     except Exception as e:
-    #         print(e)
-    #         print( "Bad i: " + str(i) )
+    for i in range(len(dataset)):
+        if i % 100 == 0:
+            print( i )
+        try:
+            img, color_hsv = dataset[i]
+        except Exception as e:
+            print(e)
+            print( "Bad i: " + str(i) )
